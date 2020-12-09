@@ -66,17 +66,32 @@ fn part1_alt(pre_size: usize, numbers: &[u64]) -> Option<u64> {
     None        
 }
  
+
 fn part2(target: u64, numbers: &[u64]) -> Option<u64> {
     // Do not need to consider any values which have indices greater than target
-    let target_ind: usize = numbers.iter().position(|&x| x == target).unwrap();
-    let to_consider = &numbers[..target_ind];
+    let high: usize = numbers.iter().position(|&x| x == target).unwrap();
 
-    for window_size in 2..to_consider.len() {
-        for batch in to_consider.windows(window_size) {
-            if target == batch.iter().sum::<u64>() {
+    // Calculate all cumulative Sums
+    let mut cumm_sum: u64 = 0;
+    let mut cumms: Vec<u64> = Vec::with_capacity(high);
+    for x in &numbers[..high] { 
+        cumm_sum += x;
+        cumms.push(cumm_sum);
+    }
+
+    // Loop over all possible window sizes
+    for window in 1..high {
+        for i in window..high {
+            // Get the sum for current window size and position
+            let sum = cumms[i] - cumms[i - window];
+
+            if target == sum { 
+                let batch = &numbers[(i - window)..=i];
                 return Some(batch.iter().max().unwrap() 
                     + batch.iter().min().unwrap());
             }
+            // 
+            if sum > target { break }
         }
     }
     None
