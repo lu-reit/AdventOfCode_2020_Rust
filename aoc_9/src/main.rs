@@ -90,7 +90,6 @@ fn part2(target: u64, numbers: &[u64]) -> Option<u64> {
                 return Some(batch.iter().max().unwrap() 
                     + batch.iter().min().unwrap());
             }
-            // 
             if sum > target { break }
         }
     }
