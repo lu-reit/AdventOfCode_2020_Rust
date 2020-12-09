@@ -1,31 +1,64 @@
 use std::fs;
 use std::time::Instant;
 
+extern crate fxhash;
+use fxhash::FxHashSet;
+
+
 fn main() {
     let (file, pre_size) = ("input", 25);
     let numbers = read_numbers(file);
 
-
     let p1_timer = Instant::now();
-    let p1_result = part1(pre_size, &numbers);
+    let p1_result_opt = part1(pre_size, &numbers);
     let p1_time = p1_timer.elapsed();
+    let p1_result = p1_result_opt.expect("Part1 failed. No point to continue");
     println!("Result part1: {:?}", p1_result);
     println!("Time part1: {:?}", p1_time);
     
+    let p2_timer = Instant::now();
+    let p2_result_opt = part1_alt(pre_size, &numbers);
+    let p2_time = p2_timer.elapsed();
+    let p2_result = p2_result_opt.expect("Part2 failed. No point to continue");
+    println!("Result part2: {:?}", p2_result);
+    println!("Time part2: {:?}", p2_time);
 }
 
 fn part1(pre_size: usize, numbers: &[u64]) -> Option<u64> {
     'b_loop: for batch in numbers.windows(pre_size + 1).skip(1) {
         for x in batch[..pre_size].iter() {
             for y in batch[..pre_size].iter().filter(|&y| y != x) {
+                // If a sum has been found, we can ignore the entire batch
                 if y + x == batch[pre_size] { continue 'b_loop; } 
             }
         }
+        // We can only arrive here if the inner loops finished running
         return Some(batch[pre_size]);
     }
     None        
 }
 
+// Alternative Solution, using a HashSet, with a complexity of O(n).
+// However, for the given input this ends being slower than O(n^2) solution 
+// above (Much slower if you use the HashSet from std-library)
+fn part1_alt(pre_size: usize, numbers: &[u64]) -> Option<u64> {
+    let mut batch_set: FxHashSet<u64> = FxHashSet::default();
+
+    'b_loop: for batch in numbers.windows(pre_size + 1).skip(1) {
+        let target = &batch[pre_size];
+        batch_set.extend(batch);
+
+        for x in batch[..pre_size].iter() {
+            if x > target { continue }
+            if batch_set.contains(&(target - x)) { 
+                batch_set.clear();
+                continue 'b_loop }
+        }
+
+        return Some(batch[pre_size]);
+    }
+    None        
+}
 
 
 fn read_numbers(filename: &str) -> Vec<u64> {
@@ -35,5 +68,3 @@ fn read_numbers(filename: &str) -> Vec<u64> {
         .map(|s| s.parse::<u64>().unwrap())
         .collect()
 }
- 
-
