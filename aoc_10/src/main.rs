@@ -51,7 +51,7 @@ fn part2(numbers: &[u32]) -> u64 {
 
 // Playing around with functions as arguments
 fn run_and_time(part: u8, numbers: &[u32], f: &dyn Fn(&[u32]) -> u64) {
-    let mut timer = Instant::now();
+    let timer = Instant::now();
     let result = f(numbers);
     let time = timer.elapsed();
     println!("Result part{}: {}", part, result);
@@ -64,7 +64,7 @@ fn run_and_time(part: u8, numbers: &[u32], f: &dyn Fn(&[u32]) -> u64) {
 fn read_numbers(filename: &str) -> Vec<u32> {
     fs::read_to_string(filename).unwrap()
         .trim()
-        .split("\n")
+        .split('\n')
         .map(|s| s.parse::<u32>().unwrap())
         .collect()
 }
