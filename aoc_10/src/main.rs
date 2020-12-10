@@ -6,9 +6,11 @@ fn main() {
 
     // Sort the Vec and add the input/output joltages.
     // This makes both parts much easier to solve.
+    let sort_timer = Instant::now();
     numbers.push(0);
     numbers.sort();
     numbers.push(numbers.iter().last().unwrap() + 3);
+    println!("Time for sorting: {:?}", sort_timer.elapsed());
 
     run_and_time(1, &numbers, &part1);
     run_and_time(2, &numbers, &part2);
@@ -55,7 +57,7 @@ fn run_and_time(part: u8, numbers: &[u32], f: &dyn Fn(&[u32]) -> u64) {
     println!("Result part{}: {}", part, result);
     // Printing time as debug automatically converts time into 
     // the appropiate unit
-    println!("Time part{}: {:?}", part, time);
+    println!("Time part{}: {:?}\n", part, time);
 }
 
 
