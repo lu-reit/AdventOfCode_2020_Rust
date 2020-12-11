@@ -21,7 +21,7 @@ fn main() {
 }
 
 fn run_chairmap(chairmap: &mut ChairMap) -> usize {
-    while chairmap.variants.len() > 0 {
+    while !chairmap.variants.is_empty() {
         chairmap.run_once();
     }
     chairmap.map.iter().filter(|&&cord| cord == Some(true)).count()
@@ -40,41 +40,40 @@ struct ChairMap {
     // None -> no seat; Some(false) -> empty seat, Some(true) -> occupied seat 
     map: Vec<Option<bool>>, 
     variants: Vec<Cord>, // List of seats that can still change
-    seat_bound: usize,
+    seat_bound: usize, 
     is_part1: bool
 
 }
 
 impl ChairMap {
-    #[inline]
     fn to_1d(&self, cord: &Cord) -> usize {
         cord.x + cord.y * self.width
     }
 
-    fn get_adjacent(&self, cord: &Cord) -> Vec<Cord> {
+    fn get_adjacent(&self, cord: &Cord) -> usize {
         if self.is_part1 { self.get_adjacent_p1(cord) } 
         else { self.get_adjacent_p2(cord) }
     }
 
-    fn get_adjacent_p1(&self, cord: &Cord) -> Vec<Cord> {
-        let mut adjacancy: Vec<Cord> = Vec::new();
+    fn get_adjacent_p1(&self, cord: &Cord) -> usize {
+        let mut adjacent: usize = 0;
         for dy in -1..=1 {
             for dx in -1..=1 {
+                if dx == 0 && dy == 0 { continue }
+
                 // Need to use signed integers here otherwise this will overflow
                 let (x_n, y_n) = ((cord.x as i32) + dx, (cord.y as i32) + dy);
+                if !ChairMap::in_bounds(x_n, y_n, self.width, self.height) { continue}
 
-                // Cant be itself or out of bounds
-                if !(dx == 0 && dy == 0) 
-                    && ChairMap::in_bounds(x_n, y_n, self.width, self.height) {
-                    adjacancy.push( Cord { x: x_n as usize, y: y_n as usize });
-                }
+                let cord = Cord { x: x_n as usize, y: y_n as usize };
+                if self.map[self.to_1d(&cord)] == Some(true) { adjacent += 1; }
             }
         }
-        adjacancy
+        adjacent 
     }
 
-    fn get_adjacent_p2(&self, cord: &Cord) -> Vec<Cord> { 
-       let mut adjacent: Vec<Cord> = Vec::new();
+    fn get_adjacent_p2(&self, cord: &Cord) -> usize { 
+       let mut adjacent = 0;
        let c_x = cord.x as i32;
        let c_y = cord.y as i32;
 
@@ -92,10 +91,11 @@ impl ChairMap {
                             x_i += dir_x;
                             y_i += dir_y;
                        }
-                       Some(_) => { 
-                           adjacent.push(cord);
+                       Some(occupied) if occupied => { 
+                           adjacent += 1;
                            break;
                        }
+                       Some(_) => { break }
                    }
                }
            }
@@ -103,27 +103,22 @@ impl ChairMap {
        adjacent
     }
      
+    #[inline]
     fn apply_rules(&self, cord: &Cord) -> Option<bool> {
-        let adjacancy = self.get_adjacent(cord);
-        let cord = self.to_1d(cord);
-        match self.map[cord] {
+        let adjacent = self.get_adjacent(cord);
+        let cord_i = self.to_1d(cord);
+        match self.map[cord_i] {
             Some(occupied) if occupied => { 
-                let n_seated = adjacancy.iter()
-                    .filter(|&&adj_cord| 
-                        self.map[self.to_1d(&adj_cord)] == Some(true))
-                    .count();
-                if n_seated >= self.seat_bound { Some(false) } else { Some(true) }
+                if adjacent >= self.seat_bound { Some(false) } else { Some(true) }
             }
             Some(_) => {
-                if adjacancy.iter()
-                    .any(|&adj_cord| 
-                        self.map[self.to_1d(&adj_cord)] == Some(true))
-                            { Some(false) } else { Some(true) }
+                if adjacent == 0 { Some(true) } else { Some(false) }
             }
             None => { None }
         }
     }
 
+    #[inline]
     fn run_once(&mut self) {
         let mut new_variants: Vec<Cord> = Vec::with_capacity(self.variants.len());
         for &cord in &self.variants {
@@ -141,7 +136,7 @@ impl ChairMap {
         self.variants = new_variants;
     }
 
-    fn build_map(chr_grid: &Vec<Vec<u8>>) -> ChairMap {
+    fn build_map(chr_grid: &[Vec<u8>]) -> ChairMap {
         let width = chr_grid[0].len();
         let height = chr_grid.len();
         let n_elem = width * height;
@@ -169,6 +164,7 @@ impl ChairMap {
     }
 
     // Check whether a position is still inside the grid
+    #[inline(always)]
     fn in_bounds(x: i32, y: i32, width: usize, height: usize) -> bool {
         x >= 0 && x < (width as i32) && y >= 0 && y < (height as i32)
     }
@@ -187,7 +183,7 @@ impl ChairMap {
                 .collect();
             println!("{}", to_print);
         }
-        println!("");
+        println!();
     }
 }
 
