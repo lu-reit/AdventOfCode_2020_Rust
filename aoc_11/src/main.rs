@@ -1,5 +1,6 @@
 use std::fs;
 use std::time::Instant;
+use std::collections::VecDeque;
 
 fn main() {
     let mut chairmap1 = ChairMap::build_map(&read_grid("input"));
@@ -39,7 +40,7 @@ struct ChairMap {
     height: usize,
     // None -> no seat; Some(false) -> empty seat, Some(true) -> occupied seat 
     map: Vec<Option<bool>>, 
-    variants: Vec<Cord>, // List of seats that can still change
+    variants: VecDeque<Cord>, // List of seats that can still change
     seat_bound: usize, 
     is_part1: bool
 
@@ -93,6 +94,7 @@ impl ChairMap {
                        }
                        Some(occupied) if occupied => { 
                            adjacent += 1;
+                           if adjacent == self.seat_bound { return adjacent }
                            break;
                        }
                        Some(_) => { break }
@@ -120,20 +122,26 @@ impl ChairMap {
 
     #[inline]
     fn run_once(&mut self) {
-        let mut new_variants: Vec<Cord> = Vec::with_capacity(self.variants.len());
-        for &cord in &self.variants {
-           if self.apply_rules(&cord) != self.map[self.to_1d(&cord)] { 
-               new_variants.push(cord); 
-           }
-        }
-        for cord in &new_variants {
+        let var_len = self.variants.len();
+        for _ in 0..var_len {
+            let cord = match self.variants.pop_front() {
+                Some(c) => c,
+                _ => return
+            };
             let cord_1d = self.to_1d(&cord);
-            self.map[cord_1d] = match self.map[cord_1d] {
-                Some(occupied) => Some(!occupied),
-                None => panic!("Empty seat in variants")
-           }
+            let seat = self.map[cord_1d];
+            if self.apply_rules(&cord) != seat {
+                self.variants.push_back(cord);
+            }
         }
-        self.variants = new_variants;
+
+        for cord in self.variants.iter() {
+            let cord_i = self.to_1d(&cord);
+            self.map[cord_i] = match self.map[cord_i] {
+                Some(occupied) => Some(!occupied),
+                _ => panic!("Encountered an empty seat in main loop")
+            };
+        }
     }
 
     fn build_map(chr_grid: &[Vec<u8>]) -> ChairMap {
@@ -141,7 +149,7 @@ impl ChairMap {
         let height = chr_grid.len();
         let n_elem = width * height;
         let mut map: Vec<Option<bool>> = Vec::with_capacity(n_elem);
-        let mut variants: Vec<Cord> = Vec::with_capacity(n_elem);
+        let mut variants: VecDeque<Cord> = VecDeque::with_capacity(n_elem);
 
         for (y, chr_row) in chr_grid.iter().enumerate() {
             for (x, chr) in chr_row.iter().enumerate() {
@@ -150,7 +158,7 @@ impl ChairMap {
                     b'L' => { 
                         // Start with everyone seated
                         map.push(Some(true)); 
-                        variants.push( Cord { x, y }); 
+                        variants.push_back( Cord { x, y }); 
                     }
                     _ => { panic!("Failed building map"); 
                     }
