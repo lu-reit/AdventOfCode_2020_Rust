@@ -5,6 +5,7 @@ mod vector;
 use vector::Vector;
 use vector::Scalar;
 
+
 type Action = (char, Scalar);
 
 struct Vessel {
@@ -12,15 +13,11 @@ struct Vessel {
     head: Vector
 }
 
-
-
-// Principal directions
+// Turn a vector by 90/180/270 degrees left
 static LTURNS: [fn(Vector) -> Vector; 3] = 
     [|v: Vector| Vector { x: -v.y, y: v.x },
      |v: Vector| Vector { x: -v.x, y: -v.y },
      |v: Vector| Vector { x: v.y, y: -v.x }];
-
-
 
 fn main() {
     let actions = read_actions("input");
@@ -76,12 +73,7 @@ fn act(action: &Action, vessel: &mut Vessel)  {
 }
 
 fn change_heading(action: &Action, vessel: &mut Vessel) {
-    let turns = match action.1 {
-        90 => 0,
-        180 => 1,
-        270 => 2,
-        _ => panic!("Illegal number of turns encountered")
-    };
+    let turns = action.1 as usize / 90 - 1;
     match action.0 {
         'L' => vessel.head = LTURNS[turns](vessel.head),
         'R' => vessel.head = LTURNS[2 - turns](vessel.head),
