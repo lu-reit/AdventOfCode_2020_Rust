@@ -1,4 +1,5 @@
 use std::ops::Add;
+use std::ops::Sub;
 use std::ops::Mul;
 use std::fmt;
 
@@ -55,7 +56,7 @@ impl<'a, 'b> Add<&'b Vector> for &'a Vector {
 impl Sub for Vector {
     type Output = Vector;
 
-    fn add(self, rhs: Vector) -> Vector {
+    fn sub(self, rhs: Vector) -> Vector {
         Vector {
             x: self.x - rhs.x,
             y: self.y - rhs.y
@@ -66,7 +67,7 @@ impl Sub for Vector {
 impl<'a, 'b> Sub <&'b Vector> for &'a Vector {
     type Output = Vector;
 
-    fn add(self, other: &'b Vector) -> Vector {
+    fn sub(self, other: &'b Vector) -> Vector {
         Vector {
             x: self.x - other.x,
             y: self.y - other.y,
@@ -79,7 +80,7 @@ impl<'a, 'b> Sub <&'b Vector> for &'a Vector {
 impl Mul for Vector {
     type Output = Vector;
 
-    fn add(self, rhs: Vector) -> Vector {
+    fn mul(self, rhs: Vector) -> Vector {
         Vector {
             x: self.x * rhs.x,
             y: self.y * rhs.y
@@ -91,13 +92,14 @@ impl Mul for Vector {
 impl<'a, 'b> Mul<&'b Vector> for &'a Vector {
     type Output = Vector;
 
-    fn add(self, other: &'b Vector) -> Vector {
+    fn mul(self, other: &'b Vector) -> Vector {
         Vector {
             x: self.x * other.x,
             y: self.y * other.y,
         }
     }
 }
+
 //---------- Scalar/Vector multiplication ----------
 
 impl Mul<Scalar> for Vector {
