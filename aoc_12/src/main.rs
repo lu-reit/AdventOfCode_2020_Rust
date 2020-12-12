@@ -13,11 +13,11 @@ struct Vessel {
     head: Vector
 }
 
-// Turn a vector by 90/180/270 degrees left
+// Rotate a vector by 90/180/270 degrees counter-clockwise
 static LTURNS: [fn(Vector) -> Vector; 3] = 
-    [|v: Vector| Vector { x: -v.y, y: v.x },
+    [|v: Vector| Vector { x: -v.y, y:  v.x },
      |v: Vector| Vector { x: -v.x, y: -v.y },
-     |v: Vector| Vector { x: v.y, y: -v.x }];
+     |v: Vector| Vector { x:  v.y, y: -v.x }];
 
 fn main() {
     let actions = read_actions("input");
@@ -60,6 +60,8 @@ fn act_broken(action: &Action, vessel: &mut Vessel)  {
     };
 }
 
+// Need a different function for part2 since N/S/W/E acts on the heading here
+// Dont want to introduce another branch here
 fn act(action: &Action, vessel: &mut Vessel)  {
     match action.0 {
         'E' => { vessel.head = vessel.head + Vector::new(action.1, 0) }
@@ -72,13 +74,14 @@ fn act(action: &Action, vessel: &mut Vessel)  {
     };
 }
 
+#[inline]
 fn change_heading(action: &Action, vessel: &mut Vessel) {
+    // Get the number of turns
     let turns = action.1 as usize / 90 - 1;
     match action.0 {
         'L' => vessel.head = LTURNS[turns](vessel.head),
         'R' => vessel.head = LTURNS[2 - turns](vessel.head),
         _ => unreachable!()
-
     };
 }
 
