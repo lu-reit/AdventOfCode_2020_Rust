@@ -24,23 +24,15 @@ fn part1(target: u64, ids: &[(Delta, ID)]) -> u64 {
 }
  
 fn part2(ids: &mut [(Delta, ID)]) -> u64 {
-    let base = ids[0];
-    ids.sort_by(|(_, x), (_, y)| y.cmp(x));
-    let first = ids[0];
-    let mut count: ID = 1;  
-
-    'outer: loop { 
-        let time = first.1 * count - first.0;
-        println!("{}", time);
-
-        for id in ids.iter() {
-            if (time + id.0 as ID) % id.1 != 0 { 
-                count += 1;
-                continue 'outer
-            }
+    let mut base = ids[0].1;
+    let mut time = 0;
+    for (d, id) in ids.iter().skip(1) {
+        while (time + d) % id != 0 {
+            time += base;
         }
-        return time + base.1 as u64;
+        base *= id;
     }
+    return time;
 }
 
 fn read_file(filename: &str) -> (u64, Vec<(Delta, ID)>) {
