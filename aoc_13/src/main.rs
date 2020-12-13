@@ -30,15 +30,18 @@ fn part1(target: u64, ids: &[(Delta, ID)]) -> u64 {
 }
  
 fn part2(ids: &mut [(Delta, ID)]) -> u64 {
+    // Sort and start with largest factors first
     ids.sort_by(|(_, x), (_, y)| y.cmp(x));
     let offset = ids[0].0;
 
+    // Note that all the ids in the list are prime
     let mut base = ids[0].1;
-    let mut time = 0;
+    let mut time = base;
     for (d, id) in ids.iter().skip(1) {
         while (time + d - offset) % id != 0 {
             time += base;
         }
+        // Skip ahead by the next factor
         base *= id;
     }
     return time - offset;
