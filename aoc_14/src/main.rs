@@ -2,17 +2,21 @@ use std::fs;
 use std::u64;
 use regex::Regex;
 use std::time::Instant;
-use std::collections::HashSet;
+use std::collections::HashMap;
+use std::collections::LinkedList;
 
 fn main() {
-    let memrules = read_file("input");
+    let memrules = read_file("test2");
 
     // Initialize the memory
     // Memory addresses in the input are at most 5 digits long
     let mut memory: Vec<u64> = vec![0; 100000];
 
-    let p1_result = part1(&memrules, &mut memory);
+    let p1_result = part1(&memrules);
     println!("Part1 result: {}", p1_result);
+
+    let p2_result = part2(&memrules);
+    println!("Part2 result: {}", p2_result);
 
 }
 
@@ -21,6 +25,7 @@ type MemVal = (usize, Unit);
 
 #[derive(Debug, Clone)]
 struct BitRule {
+    mask_str: String,
     k_mask: Unit,
     s_mask: Unit,
     values: Vec<MemVal>
@@ -28,6 +33,7 @@ struct BitRule {
 impl BitRule {
     fn new() -> BitRule {
         BitRule {
+            mask_str: String::new(),
             k_mask: 0,
             s_mask: 0,
             values: Vec::new()
@@ -35,23 +41,114 @@ impl BitRule {
     }
 }
 
-fn part1(rules: &[BitRule], mem: &mut Vec<Unit>) -> u64 {
-    // Set to keep track of all addresses that changed
-    let mut addr_set: HashSet<usize> = HashSet::with_capacity(rules.len() * 5);
+fn part1(rules: &[BitRule]) -> u64 {
+    // Memory map that keeps track of all addresses which have non-zero values
+    let mut addr_map: HashMap<usize, Unit> = HashMap::with_capacity(rules.len() * 5);
 
     // Apply the Rules to memory
     for rule in rules {
         for val in &rule.values {
             // Extract the bits to keep (AND) and set the rest of
             // the bits to the swap_masks value
-            mem[val.0] = (val.1 & rule.k_mask) | rule.s_mask; 
-            addr_set.insert(val.0);
+            let new_value = (val.1 & rule.k_mask) | rule.s_mask; 
+            // Update a value if it doesnt exist
+            *addr_map.entry(val.0).or_insert(new_value) = new_value;
         }
     }
 
     // Iterate over the indices again and sum up the values 
-    addr_set.iter().fold(0, |acc, &i| acc + mem[i])
+    addr_map.iter().fold(0, |acc, (_, v)| acc + v)
 }
+
+fn in_range(low: usize, high: usize, ranges: &mut [usize]) {
+}
+
+fn mask_bounds(mask: u64) -> Vec<(u64, u64)> {
+    let mut non_x_bounds: Vec<(u64, u64)> = Vec::new();
+    let mut low_bound = 0;
+    let mut was_x = false;
+         
+    for i in 0..36 { 
+        if ((1 << i) & mask) == 0 {
+            if !was_x { 
+                was_x = true;
+                low_bound = i; 
+            }
+        } else {
+            if was_x {
+                was_x = false;
+                non_x_bounds.push((low_bound, i))
+            }
+        }
+    }
+    if was_x { non_x_bounds.push((low_bound, 35)); }
+    non_x_bounds
+}
+ 
+fn n_ones(low: u64, high: u64) -> u64 {
+    (1 << (high - low)) - 1 | 1
+}
+
+fn in_bound(x: u64, b_min: u64, b_max: u64) -> bool {
+    x >= b_min && x <= b_max 
+}
+
+fn update_range(min: u64, max: u64, val: u64, ranges: &mut Vec<(u64, u64, u64)>)  {
+    let len = ranges.len();
+    for i in 0..len {
+        
+    ranges.push((min, max, val));
+
+}
+
+
+fn nat_sum(n: u64) -> u64 {
+    if n == 0 { 0 } else { (n * (n + 1)) / 2 }
+}
+
+fn part2(rules: &[BitRule]) -> u64 { 
+    let cutoff: u64 = 1 << 36 - 1;
+
+    let mut ranges: Vec<(u64, u64, u64)> = Vec::new();
+    for rule in rules.iter() { 
+        // Negative of the keep mask
+        let n_k_keep = !rule.k_mask | cutoff;
+        
+        let bounds = mask_bounds(n_k_keep);
+         
+        for addr in rule.values.iter() {
+            println!("Address: {}", addr.0);
+            let result = (addr.0 as u64) & n_k_keep | rule.s_mask;
+            println!("Result {}", result);
+            
+            let mut last_max = result;
+            let mut last_xs = 0;
+            for i in 0..bounds.len() {
+                let (low_m, high_m) = bounds[i];
+                // println!("low: {}, high: {}", low_m, high_m);
+                let ones = n_ones(low_m, high_m);
+                // println!("one: {}", ones);
+                let are_x = ones << low_m ;
+                // println!("are_x: {}", are_x);
+                let min = if i != 0 { result + are_x } else { result };
+                // println!("Min: {}", min);
+                let max = if i != 0 { min + last_xs } else { min + are_x };
+                // println!("Max: {}", max);
+                last_xs += are_x;
+                update_range(min, max, addr.1, &mut ranges);
+                println!("{}", addr.1);
+                println!("{:?}", ranges);
+            }
+            println!();
+        }
+        println!("{:b}", rule.k_mask);
+        println!("{:?}", bounds);
+    }
+    ranges.iter().fold(0, |acc, (min, max, val)| acc + (max - min - 1) * val)
+    
+}
+
+
     
 fn read_bitmask(s: &str) -> (Unit, Unit) {
     // Shave off "mask = "
@@ -79,6 +176,7 @@ fn read_file(filename: &str) -> Vec<BitRule> {
             let (k_mask, s_mask) = read_bitmask(s);
             b_rule.k_mask = k_mask;
             b_rule.s_mask = s_mask;
+            b_rule.mask_str = s.to_string();
             rules.push(b_rule);
         } else {
             let mut parts = re.find_iter(s);
