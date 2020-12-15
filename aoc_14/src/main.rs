@@ -3,10 +3,10 @@ use std::u64;
 use regex::Regex;
 use std::time::Instant;
 use std::collections::HashMap;
-use std::collections::LinkedList;
+use std::collections::VecDeque;
 
 fn main() {
-    let memrules = read_file("test2");
+    let memrules = read_file("input");
 
     // Initialize the memory
     // Memory addresses in the input are at most 5 digits long
@@ -69,7 +69,7 @@ fn mask_bounds(mask: u64) -> Vec<(u64, u64)> {
     let mut was_x = false;
          
     for i in 0..36 { 
-        if ((1 << i) & mask) == 0 {
+        if ((1 << i) & mask) > 0 {
             if !was_x { 
                 was_x = true;
                 low_bound = i; 
@@ -93,58 +93,73 @@ fn in_bound(x: u64, b_min: u64, b_max: u64) -> bool {
     x >= b_min && x <= b_max 
 }
 
-fn update_range(min: u64, max: u64, val: u64, ranges: &mut Vec<(u64, u64, u64)>)  {
+fn update_range(min: u64, max: u64, val: u64, ranges: &mut VecDeque<(u64, u64, u64)>)  {
     let len = ranges.len();
-    for i in 0..len {
-        
-    ranges.push((min, max, val));
+    for _ in 0..len {
+        let (min_x, max_x, val_x) = ranges.pop_front().unwrap();
 
+        if min <= min_x && max >= max_x { continue }
+        let min_in = in_bound(min, min_x, max_x);
+        let max_in = in_bound(max, min_x, max_x);
+        if min_in && max_in {
+            if min != min_x { ranges.push_back((min_x, min - 1, val_x)); }
+            if max != max_x { ranges.push_back((max + 1, max_x, val_x)); }
+        } else if min_in {
+            ranges.push_back((min_x, min - 1, val_x));
+        } else if max_in { 
+            ranges.push_back((max + 1, max_x, val_x));
+        } else {
+            ranges.push_back((min_x, max_x, val_x));
+        }
+    }
+    ranges.push_back((min, max, val));
 }
 
 
-fn nat_sum(n: u64) -> u64 {
-    if n == 0 { 0 } else { (n * (n + 1)) / 2 }
-}
 
 fn part2(rules: &[BitRule]) -> u64 { 
-    let cutoff: u64 = 1 << 36 - 1;
+    let cutoff: u64 = (1 << 36) - 1;
+    println!("{:b}" , cutoff);
 
-    let mut ranges: Vec<(u64, u64, u64)> = Vec::new();
+
+    let mut ranges: VecDeque<(u64, u64, u64)> = VecDeque::new();
     for rule in rules.iter() { 
         // Negative of the keep mask
-        let n_k_keep = !rule.k_mask | cutoff;
+        let n_k_keep = !rule.k_mask & cutoff;
         
-        let bounds = mask_bounds(n_k_keep);
+        let bounds = mask_bounds(rule.k_mask);
          
         for addr in rule.values.iter() {
-            println!("Address: {}", addr.0);
             let result = (addr.0 as u64) & n_k_keep | rule.s_mask;
-            println!("Result {}", result);
             
             let mut last_max = result;
             let mut last_xs = 0;
+            let mut last_min = 0;
             for i in 0..bounds.len() {
                 let (low_m, high_m) = bounds[i];
-                // println!("low: {}, high: {}", low_m, high_m);
+                //println!("low: {}, high: {}", low_m, high_m);
                 let ones = n_ones(low_m, high_m);
-                // println!("one: {}", ones);
-                let are_x = ones << low_m ;
-                // println!("are_x: {}", are_x);
-                let min = if i != 0 { result + are_x } else { result };
-                // println!("Min: {}", min);
-                let max = if i != 0 { min + last_xs } else { min + are_x };
-                // println!("Max: {}", max);
+                //println!("one: {:b}", ones);
+                let are_x = ones << low_m;
+                //println!("are_x: {}", are_x);
+                let min = if low_m > 0 { result + (1 << low_m)  } else { result };
+                println!("Min: {}", min);
+                let max = if i != 0 { result + are_x + last_xs } else { min + are_x };
+                println!("Max: {}", max);
+                //println!("last_xs: {}", last_xs);
                 last_xs += are_x;
+                //println!("last_xs: {}", last_xs);
+
                 update_range(min, max, addr.1, &mut ranges);
-                println!("{}", addr.1);
-                println!("{:?}", ranges);
+                //println!("{}", addr.1);
+                //println!("{:?}", ranges);
             }
-            println!();
+            // println!();
         }
-        println!("{:b}", rule.k_mask);
-        println!("{:?}", bounds);
+        //println!("{:b}", rule.k_mask);
+        // println!("{:?}", bounds);
     }
-    ranges.iter().fold(0, |acc, (min, max, val)| acc + (max - min - 1) * val)
+    ranges.iter().fold(0, |acc, (min, max, val)| acc + (max - min + 1) * val)
     
 }
 
@@ -188,7 +203,3 @@ fn read_file(filename: &str) -> Vec<BitRule> {
     }
     rules
 }
-
-
-
-
