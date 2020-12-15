@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use std::mem::size_of_val;
 use std::mem::size_of;
-
+use plotters::prelude::*;
 
 static TEST: [usize; 3] = [0, 3, 6];
 static INPUT: [usize; 7] = [6,19,0,5,7,13,1];
@@ -44,22 +44,14 @@ fn find_nth_vec(nth: usize, vals: &[usize]) -> usize {
     }
 
     let mut last = *vals.iter().last().unwrap();
-    let mut is_first = true;
+    for i in vals.len()..nth {
+        let count_last = num_count[last];
+        let current = if count_last == 0 { 0 } else { i - count_last };
 
-    for i in (vals.len() + 1)..=nth {
-        let current = if is_first { 0 } else { i - 1 - num_count[last] };
-
-        // Keep track of whether we have already seen that number
-        if num_count[current] == 0 {
-            is_first = true;
-        } else {
-            is_first = false;
-        }
         // Update the entry for the previous number 
-        num_count[last] = i - 1;
+        num_count[last] = i;
         last = current;
     }
-    println!("Size of Vector: {}", size_of_val(&*num_count));
     last
 }
 
@@ -68,7 +60,7 @@ fn main() {
     println!("Part1 result: {}", p1_result);
     println!();
 
-    find_nth(30000000, &INPUT);
+    // find_nth(30000000, &INPUT);
     let p2_timer = Instant::now();
     let p2_result = find_nth_vec(30000000, &INPUT);
     let p2_time = p2_timer.elapsed();
