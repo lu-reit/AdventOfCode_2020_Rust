@@ -12,7 +12,7 @@ fn find_nth(nth: usize, vals: &[usize]) -> usize {
     }
 
     // Initialize last and is_first (keeps track 
-    // of wheter  we have already seen that number)
+    // of wheter we have seen that number for the first time)
     let mut last = *vals.iter().last().unwrap();
     let mut is_first = true;
     for i in (vals.len() + 1)..=nth {
