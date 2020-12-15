@@ -2,10 +2,11 @@ use std::collections::HashMap;
 use std::time::Instant;
 use std::mem::size_of_val;
 use std::mem::size_of;
+use std::usize;
 use plotters::prelude::*;
 
 static TEST: [usize; 3] = [0, 3, 6];
-static INPUT: [usize; 7] = [6,19,0,5,7,13,1];
+static INPUT: [i32; 7] = [6,19,0,5,7,13,1];
 
 
 fn find_nth(nth: usize, vals: &[usize]) -> usize { 
@@ -37,20 +38,18 @@ fn find_nth(nth: usize, vals: &[usize]) -> usize {
 }
 
 // Same as above, just using a vector instead of a hashmap
-fn find_nth_vec(nth: usize, vals: &[usize]) -> usize { 
-    let mut num_count: Vec<usize> = vec![0; nth];
+fn find_nth_vec(nth: i32, vals: &[i32]) -> i32 { 
+    let mut num_count: Vec<i32> = vec![-1; nth as usize];
     for (i, val) in vals.iter().enumerate() {
-        num_count[*val] = i + 1;
+        num_count[*val as usize] = i as i32 + 1;
     }
 
     let mut last = *vals.iter().last().unwrap();
-    for i in vals.len()..nth {
-        let count_last = num_count[last];
-        let current = if count_last == 0 { 0 } else { i - count_last };
-
-        // Update the entry for the previous number 
-        num_count[last] = i;
-        last = current;
+    let lower = vals.len() as i32;
+    for i in lower..nth {
+        let count_last = num_count[last as usize];
+        num_count[last as usize] = i;
+        last = !(count_last >> 31) & (i - count_last);
     }
     last
 }
