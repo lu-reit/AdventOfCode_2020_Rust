@@ -1,6 +1,7 @@
 use std::fs;
 use regex::Regex;
 use itertools::Itertools;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Copy)]
 struct Field { 
@@ -24,10 +25,9 @@ struct Notes {
     others: Vec<Ticket>
 }
 
-
 fn main() {
     let notes = read_notes("input");
-    let p1_result = part1(&notes);
+    let (p1_result, faulty) = find_faulty(&notes);
     println!("Part 1 result: {}", p1_result);
 }
 
@@ -35,19 +35,21 @@ fn in_bound(x: usize, (low, high): (usize, usize)) -> bool {
     x >= low && x <= high
 }
 
-fn part1(notes: &Notes) -> usize {
+fn find_faulty(notes: &Notes) -> (usize, HashSet<usize>) {
+    let mut faulty_set: HashSet<usize> = HashSet::new();
     let mut sum: usize = 0;
     for others in &notes.others {
-        'vals: for x in others {
+        'vals: for (i, x) in others.iter().enumerate() {
             for field in &notes.fields {
                 if in_bound(*x, field.first) || in_bound(*x, field.second) {
                     continue 'vals
                 }
             }
             sum += x;
+            faulty_set.insert(i);
         }
     }
-    sum
+    (sum, faulty_set)
 }
 
 fn read_fields(text: &str, re: &Regex) -> Vec<Field> {
