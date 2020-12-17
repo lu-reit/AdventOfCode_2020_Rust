@@ -1,6 +1,5 @@
 use std::fs;
 use std::time::Instant;
-use std::collections::VecDeque;
 use std::collections::HashSet;
 
 fn main() {
