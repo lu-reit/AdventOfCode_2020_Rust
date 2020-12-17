@@ -8,11 +8,12 @@ fn main() {
     let mut statemap2 = statemap1.clone();
     statemap2.is_part1 = false;
 
-//    let p1_timer = Instant::now();
-//    let p1_result = run_statemap(&mut statemap1);
-//    let p1_time = p1_timer.elapsed();
-//    println!("Result part1: {}", p1_result);
-//    println!("Time part1: {:?}", p1_time);
+    let p1_timer = Instant::now();
+    run_statemap(6, &mut statemap1);
+    let p1_result = statemap1.map.len();
+    let p1_time = p1_timer.elapsed();
+    println!("Result part1: {}", p1_result);
+    println!("Time part1: {:?}", p1_time);
 //
 //    let p2_timer = Instant::now();
 //    let p2_result = run_stairmap(&mut statemap2);
@@ -21,14 +22,11 @@ fn main() {
 //    println!("Time part2: {:?}", p2_time);
 }
 
-/*
-fn run_statemap(chairmap: &mut StateMap) -> usize {
-    while !chairmap.variants.is_empty() {
-        chairmap.run_once();
+fn run_statemap(times: usize, statemap: &mut StateMap) {
+    for _ in 0..times {
+        statemap.run_once();
     }
-    chairmap.map.iter().count()
 }
-*/
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Cord {
@@ -48,61 +46,80 @@ struct StateMap {
 }
 
 impl StateMap {
+    #[inline]
     fn at_cord(&self, cord: &Cord) -> bool {
         self.map.contains(cord)
     }
 
-    fn get_adjacent(&self, cord: &Cord) -> usize {
-        self.get_adjacent3(cord)
+    #[inline]
+    fn num_adjacent(&self, cord: &Cord) -> usize {
+        self.num_adjacent3(cord)
     }
 
-    fn get_adjacent3(&self, cord: &Cord) -> usize {
+    fn num_adjacent3(&self, cord: &Cord) -> usize {
         let mut adjacent: usize = 0;
-        for dy in -1i32..=1 {
-            for dx in -1i32..=1 {
+        for dx in -1i32..=1 {
+            for dy in -1i32..=1 {
                 for dz in -1i32..=1 {
-                    if dx == 0 && dy == 0 && dz == 0{ continue }
-
-                    let cord = Cord { x: cord.x + dx, y: cord.y + dy, 
-                                      z: cord.y + dz, w: 0 };
-                    if self.at_cord(&cord) == true { adjacent += 1; }
+                    if dx.abs() + dy.abs() + dz.abs() > 0  {
+                        let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
+                                               z: cord.z + dz, w: 0 };
+                        if self.at_cord(&neighbour) == true { adjacent += 1; }
+                    }
                 }
             }
         }
         adjacent 
     }
-
-    /*
+    
     #[inline]
-    fn apply_rules(&self, cord: &Cord) -> Option<bool> {
-        let adjacent = self.get_adjacent(cord);
-        let cord_i = self.to_1d(cord);
-        match self.map[cord_i] {
-            Some(occupied) if occupied => { 
-                if adjacent >= self.seat_bound { Some(false) } else { Some(true) }
+    fn test_active(&self, cord: &Cord) -> bool {
+        let n_adjacent = self.num_adjacent(cord);
+        n_adjacent == self.stay_active.0 || n_adjacent == self.stay_active.1
+    }
+
+    #[inline]
+    fn test_inactive(&self, cord: &Cord) -> bool {
+        let n_adjacent = self.num_adjacent(cord);
+        n_adjacent == self.activate
+    }
+
+    #[inline]
+    fn test_neighbours(&self, cord: &Cord, update: &mut Vec<Cord>) {
+        self.test_neighbours3(cord, update);
+    }
+
+
+    #[inline]
+    fn test_neighbours3(&self, cord: &Cord, update: &mut Vec<Cord>) {
+        for dx in -1i32..=1 {
+            for dy in -1i32..=1 {
+                for dz in -1i32..=1 {
+                    if dx.abs() + dy.abs() + dz.abs() > 0 {
+                        let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
+                                          z: cord.z + dz, w: 0 };
+                        if self.test_inactive(&neighbour) {
+                            update.push(neighbour);
+                        }
+                    }
+                }
             }
-            Some(_) => {
-                if adjacent == 0 { Some(true) } else { Some(false) }
-            }
-            None => { None }
         }
     }
-    */
 
-    /*
-    #[inline]
+    fn apply_rules(&self, cord: &Cord, update: &mut Vec<Cord>) {
+        self.test_neighbours(cord, update);
+        if self.test_active(&cord) { update.push(*cord) }
+    }
+
     fn run_once(&mut self) {
-        let var_len = self.variants.len();
-
-        for cord in self.variants.iter() {
-            let cord_i = self.to_1d(&cord);
-            self.map[cord_i] = match self.map[cord_i] {
-                Some(occupied) => Some(!occupied),
-                _ => panic!("Encountered an empty seat in main loop")
-            };
+        println!("Map len: {}", self.map.len());
+        let mut update: Vec<Cord> = Vec::new();
+        for cord in self.map.iter() {
+            self.apply_rules(&cord, &mut update);
         }
+        self.map = update.into_iter().collect();
     }
-    */
 
     fn build_map(chr_grid: &[Vec<u8>]) -> StateMap {
         let mut map: HashSet<Cord> = HashSet::new();
