@@ -47,12 +47,10 @@ struct StateMap {
 }
 
 impl StateMap {
-    #[inline]
     fn at_cord(&self, cord: &Cord) -> bool {
         self.map.contains(cord)
     }
 
-    #[inline]
     fn num_adjacent(&self, cord: &Cord) -> usize {
         if self.is_part1 {
             self.num_adjacent3(cord)
@@ -61,7 +59,6 @@ impl StateMap {
         }
     }
 
-    #[inline]
     fn num_adjacent3(&self, cord: &Cord) -> usize {
         let mut adjacent: usize = 0;
         for dx in -1i32..=1 {
@@ -70,7 +67,7 @@ impl StateMap {
                     if dx.abs() + dy.abs() + dz.abs() > 0  {
                         let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
                                                z: cord.z + dz, w: 0 };
-                        if self.at_cord(&neighbour) == true { adjacent += 1; }
+                        if self.at_cord(&neighbour) { adjacent += 1; }
                     }
                 }
             }
@@ -78,7 +75,6 @@ impl StateMap {
         adjacent 
     }
 
-    #[inline]
     fn num_adjacent4(&self, cord: &Cord) -> usize {
         let mut adjacent: usize = 0;
         for dx in -1i32..=1 {
@@ -88,7 +84,7 @@ impl StateMap {
                         if dx.abs() + dy.abs() + dz.abs() + dw.abs() > 0  {
                             let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
                                                    z: cord.z + dz, w: cord.w + dw };
-                            if self.at_cord(&neighbour) == true { adjacent += 1; }
+                            if self.at_cord(&neighbour) { adjacent += 1; }
                         }
                     }
                 }
@@ -97,19 +93,16 @@ impl StateMap {
         adjacent 
     }
     
-    #[inline]
     fn test_active(&self, cord: &Cord) -> bool {
         let n_adjacent = self.num_adjacent(cord);
         n_adjacent == self.stay_active.0 || n_adjacent == self.stay_active.1
     }
 
-    #[inline]
     fn test_inactive(&self, cord: &Cord) -> bool {
         let n_adjacent = self.num_adjacent(cord);
         n_adjacent == self.activate
     }
 
-    #[inline]
     fn test_neighbours(&self, cord: &Cord, update: &mut Vec<Cord>) {
         if self.is_part1 { 
             self.test_neighbours3(cord, update);
@@ -118,8 +111,6 @@ impl StateMap {
         }
     }
 
-
-    #[inline]
     fn test_neighbours3(&self, cord: &Cord, update: &mut Vec<Cord>) {
         for dx in -1i32..=1 {
             for dy in -1i32..=1 {
@@ -127,6 +118,7 @@ impl StateMap {
                     if dx.abs() + dy.abs() + dz.abs() > 0 {
                         let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
                                           z: cord.z + dz, w: 0 };
+                        if self.at_cord(&neighbour) { continue } 
                         if self.test_inactive(&neighbour) {
                             update.push(neighbour);
                         }
@@ -136,7 +128,6 @@ impl StateMap {
         }
     }
 
-    #[inline]
     fn test_neighbours4(&self, cord: &Cord, update: &mut Vec<Cord>) {
         for dx in -1i32..=1 {
             for dy in -1i32..=1 {
@@ -145,6 +136,7 @@ impl StateMap {
                         if dx.abs() + dy.abs() + dz.abs() + dw.abs() > 0 {
                             let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
                                               z: cord.z + dz, w: cord.w + dw };
+                            if self.at_cord(&neighbour) { continue } 
                             if self.test_inactive(&neighbour) {
                                 update.push(neighbour);
                             }
@@ -155,7 +147,6 @@ impl StateMap {
         }
     }
 
-    #[inline]
     fn apply_rules(&self, cord: &Cord, update: &mut Vec<Cord>) {
         self.test_neighbours(cord, update);
         if self.test_active(&cord) { update.push(*cord) }
