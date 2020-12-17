@@ -37,6 +37,7 @@ fn main() {
     println!("Time both: {:?}", elapsed);
 }
 
+#[inline]
 fn in_bound(x: usize, (low, high): (usize, usize)) -> bool {
     x >= low && x <= high
 }
@@ -66,13 +67,11 @@ fn print_rot_mat(mat: &[(usize, usize, Vec<bool>)]) {
 // Finds faulty tickets and computes the answer for part 1
 fn find_faulty(notes: &Notes) -> (usize, Vec<Vec<bool>>) {
     let len = notes.fields.len();
-    let mut global: Vec<Vec<bool>> = 
-        vec![vec![true; len]; len]; 
+    let mut global: Vec<Vec<bool>> = vec![vec![true; len]; len]; 
 
     let mut sum: usize = 0;
     'row: for other in notes.others.iter() {
-        let mut update: Vec<Vec<bool>> = 
-            vec![vec![true; len]; len]; 
+        let mut update: Vec<Vec<bool>> = vec![vec![true; len]; len]; 
              
         for (i, &x) in other.iter().enumerate() {
             let mut is_faulty = true;
