@@ -1,19 +1,17 @@
 use std::fs;
 use regex::Regex;
 use itertools::Itertools;
-use std::collections::HashSet;
-use std::collections::VecDeque;
+use std::time::Instant;
 
 #[derive(Debug, Clone)]
 struct Field { 
-    id: usize,
     first: (usize, usize),
     second: (usize, usize)
 }
 
 impl Field {
-    fn new(id: usize, first: (usize, usize), second: (usize, usize)) -> Field {
-        Field { id, first, second }
+    fn new(first: (usize, usize), second: (usize, usize)) -> Field {
+        Field {first, second }
     }
 }
 
@@ -30,10 +28,13 @@ fn main() {
     let filename = "input";
     let notes = read_notes(filename);
      
+    let timer = Instant::now();
     let (p1_result, mut occurence) = find_faulty(&notes);
-    println!("Part 1 result: {}", p1_result);
     let p2_result = part2(&occurence, &notes);
+    let elapsed = timer.elapsed();
+    println!("Part 1 result: {}", p1_result);
     println!("Part 2 result: {}", p2_result);
+    println!("Time both: {:?}", elapsed);
 }
 
 fn in_bound(x: usize, (low, high): (usize, usize)) -> bool {
@@ -144,8 +145,7 @@ fn read_fields(text: &str, re: &Regex) -> Vec<Field> {
     let mut fields: Vec<Field> = Vec::new();
 
     // Use a id instead of a String to identify fields
-    for (id, entry) in text.split('\n').enumerate() {
-
+    for entry in text.split('\n') {
 
         // Match the numbers, parse them, and get a iterator over pairs
         let mut r_iter = re.find_iter(entry)
@@ -154,7 +154,7 @@ fn read_fields(text: &str, re: &Regex) -> Vec<Field> {
 
         let first = r_iter.next().unwrap();
         let second = r_iter.next().unwrap();
-        fields.push(Field::new(id, first, second));
+        fields.push(Field::new(first, second));
     }
     fields
 }
