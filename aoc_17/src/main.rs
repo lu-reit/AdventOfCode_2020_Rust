@@ -14,12 +14,13 @@ fn main() {
     let p1_time = p1_timer.elapsed();
     println!("Result part1: {}", p1_result);
     println!("Time part1: {:?}", p1_time);
-//
-//    let p2_timer = Instant::now();
-//    let p2_result = run_stairmap(&mut statemap2);
-//    let p2_time = p2_timer.elapsed();
-//    println!("Result part2: {}", p2_result);
-//    println!("Time part2: {:?}", p2_time);
+
+    let p2_timer = Instant::now();
+    run_statemap(6, &mut statemap2);
+    let p2_result = statemap2.map.len();
+    let p2_time = p2_timer.elapsed();
+    println!("Result part2: {}", p2_result);
+    println!("Time part2: {:?}", p2_time);
 }
 
 fn run_statemap(times: usize, statemap: &mut StateMap) {
@@ -53,9 +54,14 @@ impl StateMap {
 
     #[inline]
     fn num_adjacent(&self, cord: &Cord) -> usize {
-        self.num_adjacent3(cord)
+        if self.is_part1 {
+            self.num_adjacent3(cord)
+        } else {
+            self.num_adjacent4(cord)
+        }
     }
 
+    #[inline]
     fn num_adjacent3(&self, cord: &Cord) -> usize {
         let mut adjacent: usize = 0;
         for dx in -1i32..=1 {
@@ -65,6 +71,25 @@ impl StateMap {
                         let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
                                                z: cord.z + dz, w: 0 };
                         if self.at_cord(&neighbour) == true { adjacent += 1; }
+                    }
+                }
+            }
+        }
+        adjacent 
+    }
+
+    #[inline]
+    fn num_adjacent4(&self, cord: &Cord) -> usize {
+        let mut adjacent: usize = 0;
+        for dx in -1i32..=1 {
+            for dy in -1i32..=1 {
+                for dz in -1i32..=1 {
+                    for dw in -1i32..=1 {
+                        if dx.abs() + dy.abs() + dz.abs() + dw.abs() > 0  {
+                            let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
+                                                   z: cord.z + dz, w: cord.w + dw };
+                            if self.at_cord(&neighbour) == true { adjacent += 1; }
+                        }
                     }
                 }
             }
@@ -86,7 +111,11 @@ impl StateMap {
 
     #[inline]
     fn test_neighbours(&self, cord: &Cord, update: &mut Vec<Cord>) {
-        self.test_neighbours3(cord, update);
+        if self.is_part1 { 
+            self.test_neighbours3(cord, update);
+        } else {
+            self.test_neighbours4(cord, update);
+        }
     }
 
 
@@ -107,13 +136,32 @@ impl StateMap {
         }
     }
 
+    #[inline]
+    fn test_neighbours4(&self, cord: &Cord, update: &mut Vec<Cord>) {
+        for dx in -1i32..=1 {
+            for dy in -1i32..=1 {
+                for dz in -1i32..=1 {
+                    for dw in -1i32..=1 {
+                        if dx.abs() + dy.abs() + dz.abs() + dw.abs() > 0 {
+                            let neighbour = Cord { x: cord.x + dx, y: cord.y + dy, 
+                                              z: cord.z + dz, w: cord.w + dw };
+                            if self.test_inactive(&neighbour) {
+                                update.push(neighbour);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[inline]
     fn apply_rules(&self, cord: &Cord, update: &mut Vec<Cord>) {
         self.test_neighbours(cord, update);
         if self.test_active(&cord) { update.push(*cord) }
     }
 
     fn run_once(&mut self) {
-        println!("Map len: {}", self.map.len());
         let mut update: Vec<Cord> = Vec::new();
         for cord in self.map.iter() {
             self.apply_rules(&cord, &mut update);
