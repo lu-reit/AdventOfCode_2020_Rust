@@ -71,13 +71,14 @@ fn eval2(pos: usize, line: &[u8]) -> (Num, usize) {
         (line[pos] as Num, pos + 1)
     };
 
+    // Collects the values to multiply
     let mut to_mul: [Num; 6] = [1; 6];
     to_mul[0] = lval;
-    let mut to_mul_i = 0;
+    let mut to_mul_i = 0; 
 
     loop {
         // Get the value for the right-hand side and the position 
-        // of the next left-hand side
+        // of the next operator
         let rpos = op_pos + 1;
         let (rval, new_pos) = if line[rpos] == b'(' {
             eval2(rpos + 1, &line)
