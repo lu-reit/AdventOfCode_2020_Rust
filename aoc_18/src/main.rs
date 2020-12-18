@@ -35,23 +35,24 @@ fn part1(lines: &[Vec<u8>]) -> Num {
  
 fn eval1(line: &[u8]) -> (Num, usize) {
     // Get the initial value/index of the left-hand side
-    // (which may either be a scalar or the result of an
-    // expression)
+    // (which may either be a scalar or an expression).
+    // i always points to the rhs
     let (mut val, mut i) = if line[0] == b'(' { 
             eval1(&line[1..]) 
         } else { 
             (line[0] as Num, 2) 
     };
     loop {
+        // Return when we hit the delimiter at the operators position
         if line[i - 1] == b')' { return (val, i + 2); }
 
-        let (rval, new_i) = if line[i] == b'(' { 
+        let (rval, offset) = if line[i] == b'(' { 
             eval1(&line[(i + 1)..])
         } else {
             (line[i] as Num, 2)
         };
         if line[i - 1] == b'+' { val += rval; } else { val *= rval; }
-        i += new_i;
+        i += offset;
     }
 }
 
@@ -71,7 +72,7 @@ fn eval2(pos: usize, line: &[u8]) -> (Num, usize) {
         (line[pos] as Num, pos + 1)
     };
 
-    // Collects the values to multiply
+    // Collects the values to multiply 
     let mut to_mul: [Num; 6] = [1; 6];
     to_mul[0] = lval;
     let mut to_mul_i = 0; 
@@ -105,7 +106,9 @@ fn read_file(filename: &str) -> Vec<Vec<u8>>  {
 
     lreader.for_each(|line| {
         // Read the line as u8, remove white-space and map ascii-digits
-        // to int-values
+        // to int-values. Also add a delimiter to the end. This allows us to treat
+        // the top-level expressions the same way as any of its children 
+        // during recursion
         let mut tokens: Vec<u8> = line.into_iter()
             .filter(|chr| !chr.is_ascii_whitespace())
             .map(|chr| if chr.is_ascii_digit() { *chr - 48 } else { *chr })
