@@ -15,9 +15,24 @@ fn main() {
     let lines = read_file("test");
 
     for line in lines {
-        println!("{}", String::from_utf8(line).unwrap());
+        println!("{:?}", line);
     }
 }
+
+fn part1(lines: &[Vec<u8>]) -> Num {
+    let mut sum = 0;
+    for line in lines {
+    }
+
+    sum
+}
+ 
+fn to_num(ascii: u8) -> Num {
+    ascii as Num - 48
+}
+
+fn eval1(line: &[u8]) -> (Num, usize) {
+    let (mut val, mut i) = if line[0] == b'(' { eval1(line[1..]) } else { (line, 1) }
 
 
 
@@ -28,7 +43,7 @@ fn read_file(filename: &str) -> Vec<Vec<u8>>  {
     lreader.for_each(|line| {
         let tokens = line.into_iter()
             .filter(|chr| !chr.is_ascii_whitespace())
-            .map(|chr| *chr)
+            .map(|chr| if chr.is_ascii_digit() { *chr - 48 } else { *chr })
             .collect();
         lines.push(tokens);
         Ok(true)
