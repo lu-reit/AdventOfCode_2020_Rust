@@ -66,7 +66,7 @@ fn part2(lines: &[Vec<u8>]) -> Num {
 }
 
 fn eval2(pos: usize, line: &[u8]) -> (Num, usize) {
-    let (mut lval, mut op_pos) = if line[pos] == b'(' {
+    let (lval, mut op_pos) = if line[pos] == b'(' {
         eval2(pos + 1, &line)
     } else {
         (line[pos] as Num, pos + 1)
@@ -87,12 +87,11 @@ fn eval2(pos: usize, line: &[u8]) -> (Num, usize) {
             (line[rpos] as Num, rpos + 1)
         };
         if line[op_pos] == b'+' {
-            to_mul[to_mul_i] = to_mul[to_mul_i] + rval;
+            to_mul[to_mul_i] += rval;
         } else { 
             to_mul_i += 1;
             to_mul[to_mul_i] = rval;
         }
-        lval = rval;
         op_pos = new_pos;
         if line[op_pos] == b')' { break }
     }
@@ -109,15 +108,16 @@ fn read_file(filename: &str) -> Vec<Vec<u8>>  {
         // to int-values. Also add a delimiter to the end. This allows us to treat
         // the top-level expressions the same way as any of its children 
         // during recursion
-        let mut tokens: Vec<u8> = line.into_iter()
+        let mut tokens: Vec<u8> = line.iter()
             .filter(|chr| !chr.is_ascii_whitespace())
             .map(|chr| if chr.is_ascii_digit() { *chr - 48 } else { *chr })
             .collect();
         tokens.push(b')'); // Add a delimiter :D
         lines.push(tokens);
-        Ok(true) // No clue, but linereader requires this
-    });
+        Ok(true)
+    }).unwrap();
     lines
 }
 
+ 
 
