@@ -3,10 +3,12 @@ use std::u128;
 use regex::Regex;
 use std::time::Instant;
 
-static MAX_DEPTH: usize = 3;
+// Number of iterations into the infinite loop
+// 5 is lowest i can go for my input
+static MAX_DEPTH: usize = 6;
 
 fn main() {
-    let mut transmission = read_file("input");
+    let transmission = read_file("input");
     
     let p1_timer = Instant::now();
     let p1_result = part1(&transmission);
@@ -100,7 +102,34 @@ fn part2(transmission: &Transmission) -> usize {
 fn up_to_max_depth(message: &Message, rules: &Rules) -> bool {
     let (_, _, pat42) = match_rules(42, message, rules);
     let (_, _, pat31) = match_rules(31, message, rules);
-    true
+    // Entire rule 8 or 11 up to max_depth
+    let mut rule8 = pat42.clone();
+    let mut rule11 = combinations(&pat42, &pat31);
+    // Right hand side of rules 8 and 11 for the current iteration
+    let mut right8 = rule8.clone();
+    let mut right11 = rule11.clone();
+
+
+    for _ in 0..MAX_DEPTH {
+        // Build and test rule 0
+        let rule0 = combinations(&rule8, &rule11);
+        let (quit, found, _) = test_patterns(&rule0, message);
+        if quit { return found }
+
+        // Extend rule 8
+        let combi8 = combinations(&right8, &pat42);
+        let (_, _, new8) = test_patterns(&combi8, message);
+        right8 = new8;
+        rule8.extend(&right8);
+
+        // Extend rule 11
+        let combleft = combinations(&pat42, &right11);
+        let combright =  combinations(&combleft, &pat31);
+        let (_, _, new11) = test_patterns(&combright, message);
+        right11 = new11;
+        rule11.extend(&right11);
+    }
+    false
 }
 
 
