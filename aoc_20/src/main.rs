@@ -3,8 +3,11 @@ use std::collections::HashMap;
 use std::fmt;
 
 fn main() {
-    let patches = parse_patches("test");
+    let mut patches = parse_patches("input");
+    let edgemap = build_edgemap(&patches);
+    build_image(&patches, &edgemap);
 }
+
 
 // Number of pixels per row/column
 const SIZE: usize = 10;
@@ -22,16 +25,23 @@ impl Line {
         Line { bin: 0 }
     }
 
-    // Reverse/flip a line by xoring with a bit-string of ones
+    // Reverse/flip a line.
+    // Currently this just copies the bits one by one
     #[inline]
-    fn reverse(&self) -> Line {
-        let ones = (1 << SIZE) - 1;
-        Line { bin: self.bin ^ ones }
+    fn flip(&self) -> Line {
+        let mut flipped = 0;
+        let mut bin_old = self.bin;
+        for i in 0..SIZE {
+            flipped = (flipped | (bin_old & 1)) << 1;
+            bin_old >>= 1;
+        }
+        flipped >>= 1;
+        Line { bin: flipped }
     }
     
     // Swap the nth-bit in a bit-string. Note that bit-strings
-    // here are zero-indexed from the left. Here, the left most bit
-    // is not the most-significant-bit but the (SIZE - 1) bit. So
+    // here are zero-indexed from the left. The left-most bit
+    // is not the most-significant bit but the (SIZE - 1) bit. So
     // if SIZE = 5 and x = 0001 1111, then x.swap_nth(0) = 0000 1111
     #[inline]
     fn swap_nth(&mut self, nth: usize) {
@@ -44,7 +54,6 @@ impl Line {
         let nth_one = 1 << (SIZE - 1 - nth);
         self.bin & nth_one
     }
-
 }
 
 impl fmt::Display for Line {
@@ -61,7 +70,6 @@ impl fmt::Display for Line {
     }
 }
 
-type EdgeMap = HashMap<Line, Vec<usize>>;
 
 // A patch of the resulting image. Patches are always square.
 // Patches can be rotated and flipped. The current orientation 
@@ -92,9 +100,7 @@ impl Patch {
     fn get_col(&self, nth: usize) -> Line {
         let mut col = Line::new();
         for i in 0..SIZE {
-            if self.data[i].get_nth(nth) > 0 {
-                col.swap_nth(i);
-            }
+            col.bin |= ((self.data[i].get_nth(nth) != 0) as u16) << (SIZE - 1 - i);
         }
         col
     }
@@ -109,6 +115,25 @@ impl fmt::Display for Patch {
     }
 }
 
+type EdgeMap = HashMap<Line, Vec<usize>>;
+
+fn build_edgemap(patches: &[Patch]) -> EdgeMap {
+    let mut edge_map = HashMap::new();
+    for patch in patches {
+        for edge in &patch.edges {
+            let patch_ids = edge_map.entry(*edge).or_insert(Vec::new());
+            patch_ids.push(patch.id);
+        }
+    }
+    edge_map
+}
+
+fn build_image(patches: &[Patch], edgemap: &EdgeMap) {
+    let side_len = (patches.len() as f64).sqrt() as usize;
+    let mut order: Vec<Vec<(usize, u8)>> = vec![vec![(0,0); side_len]; side_len];
+    println!("Side len: {}", side_len);
+
+}
 
 fn parse_patch(text: &str) -> Patch {
     let mut patch = Patch::new();
@@ -133,10 +158,9 @@ fn parse_patch(text: &str) -> Patch {
     patch.edges[1] = patch.data[0];
     patch.edges[2] = patch.get_col(SIZE - 1);
     patch.edges[3] = patch.data[SIZE - 1];
-    for i in 4..9 {
-        patch.edges[i] = patch.edges[i - 4].reverse();
+    for i in 4..8 {
+        patch.edges[i] = patch.edges[i - 4].flip();
     }
-
     patch
 }
 
