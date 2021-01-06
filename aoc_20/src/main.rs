@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::fmt;
 
 fn main() {
-    let mut patches = parse_patches("input");
+    let mut patches = parse_patches("test");
     let edgemap = build_edgemap(&patches);
     build_image(&mut patches, &edgemap);
 }
@@ -12,6 +12,12 @@ fn main() {
 
 // Number of pixels per row/column
 const SIZE: usize = 10;
+
+static LEFTS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
+static TOPS: [usize; 8] = [1, 0, 5, 4, 3, 2, 7, 6];
+static RIGHTS: [usize; 8] = [2, 3, 0, 1, 6, 7, 4, 5];
+static BOTS: [usize; 8] = [3, 2, 7, 6, 1, 0, 5, 4];
+
 
 // A Line of SIZE pixels; either a row or a column 
 // represented by an integer. The (SIZE - 1) bit
@@ -126,24 +132,23 @@ fn build_edgemap(patches: &HashMap<usize, Patch>) -> EdgeMap {
     edge_map
 }
 
-fn build_order(side_len: usize, patches: &mut HashMap<usize, Patch>, 
-    edgemap: &EdgeMap) -> Vec<Vec<usize>> {
-    let mut order: Vec<Vec<usize>> = vec![vec![0; side_len]; side_len];
 
-    for (edge, ids) in edgemap.iter() {
-    }
-    order 
-}
-
+// Finds the four corner-patches of the image. Returns their ids.
+// If a line has only one associated patch-id its position must be at
+// the border of the image. For a patch to be a corner-patch 4 (2
+// normal + 2 flipped) of its edge-lines must have only one associated
+// patch-id. 
 fn find_corners(edgemap: &EdgeMap) -> Vec<usize> {
     let mut edge_ids: Vec<usize> = Vec::new();
     let mut single_counts: HashMap<usize, usize> = HashMap::new();
+
     for (_, ids) in edgemap.iter() {
         if ids.len() == 1 {
             let mut id_count = single_counts.entry(ids[0]).or_insert(0);
             *id_count += 1;
             if single_counts[&ids[0]] == 4 {
                 edge_ids.push(ids[0]);
+                // Quit if 4 corners have been found
                 if edge_ids.len() == 4 { break }
             }
         }
@@ -151,12 +156,89 @@ fn find_corners(edgemap: &EdgeMap) -> Vec<usize> {
     edge_ids
 }
 
+fn first_rotation(first: usize, patches: &HashMap<usize, Patch>,
+    edge_map: &EdgeMap) -> usize {
+    let first_edges = patches[&first].edges;
+    // Find left edge 
+    for (rot, edge) in first_edges.iter().enumerate() {
+        if edge_map[edge].len() == 1 {
+            let top_idx = BOTS[rot];
+            let top = first_edges[top_idx];
+            if edge_map[&top].len() == 1 {
+                return rot;
+            }
+        }
+    }
+    panic!("First rotation not found");
+}
 
-fn build_image(patches: &mut HashMap<usize, Patch>, edgemap: &EdgeMap) {
+fn build_order(corners: &[usize], side_len: usize, patches: 
+    &HashMap<usize, Patch>, edgemap: &EdgeMap) -> Vec<Vec<(usize, usize)>> {
+
+    let mut order: Vec<Vec<(usize, usize)>> = Vec::new();
+    let first_rot = first_rotation(1951, patches, edgemap);
+    order.push(vec![(1951, first_rot)]);
+
+    let mut i = 0;
+    loop { 
+        for j in 0..(side_len - 1) {
+            println!("i: {}, j: {}", i, j);
+            let (prev_id, prev_rot) = order[i][j];
+            let prev_right = patches[&prev_id].edges[RIGHTS[prev_rot]];
+
+            let border_ids = &edgemap[&prev_right];
+            let next_id = if border_ids[0] == prev_id { border_ids[1] } 
+                else { border_ids[0] };
+            let next_rot = patches[&next_id]
+                .edges.iter()
+                .position(|&line| line == prev_right)
+                .unwrap();
+
+            order[i].push((next_id, next_rot));
+            println!("order: {:?}", order);
+        }
+        if i == (side_len - 1) { break }
+        let (prev_id, prev_rot) = order[i][0];
+        let prev_bot = patches[&prev_id].edges[TOPS[prev_rot]];
+
+        let border_ids = &edgemap[&prev_bot];
+        let next_id = if border_ids[0] == prev_id { border_ids[1] } 
+            else { border_ids[0] };
+
+        let top_pos = patches[&next_id]
+            .edges.iter()
+            .position(|&line| line == prev_bot)
+            .unwrap();
+        let next_rot = BOTS.iter()
+            .position(|&pos| pos == top_pos)
+            .unwrap();
+
+        order.push(vec![(next_id, next_rot)]);
+        i += 1;
+    }
+    order
+}
+
+fn build_image(patches: &HashMap<usize, Patch>, edgemap: &EdgeMap) {
     let side_len = (patches.len() as f64).sqrt() as usize;
     let corners = find_corners(edgemap);
     let p1_answer = corners.iter().fold(1, |acc, &id| id as u64 * acc);
     println!("P1 answer: {}", p1_answer);
+    println!("All corners: {:?}", corners);
+
+    let first = corners[0];
+    let first_rotation = first_rotation(corners[0], patches, edgemap);
+
+    println!("Rotation of patch at top_left corner: {}", first_rotation);
+    println!("Left-edge of patch of that patch: {}", 
+        patches[&first].edges[first_rotation]);
+    println!("LEFT: {:?}", edgemap[&patches[&first].edges[LEFTS[first_rotation]]]);
+    println!("TOP: {:?}", edgemap[&patches[&first].edges[TOPS[first_rotation]]]);
+    println!("RIGHT: {:?}", edgemap[&patches[&first].edges[RIGHTS[first_rotation]]]);
+    println!("BOT: {:?}", edgemap[&patches[&first].edges[BOTS[first_rotation]]]);
+    
+
+    let order = build_order(&corners, side_len, patches, edgemap);
    
 }
 
