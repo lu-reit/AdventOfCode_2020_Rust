@@ -176,13 +176,12 @@ fn build_order(corners: &[usize], side_len: usize, patches:
     &HashMap<usize, Patch>, edgemap: &EdgeMap) -> Vec<Vec<(usize, usize)>> {
 
     let mut order: Vec<Vec<(usize, usize)>> = Vec::new();
-    let first_rot = first_rotation(1951, patches, edgemap);
-    order.push(vec![(1951, first_rot)]);
+    let first_rot = first_rotation(corners[0], patches, edgemap);
+    order.push(vec![(corners[0], first_rot)]);
 
     let mut i = 0;
     loop { 
         for j in 0..(side_len - 1) {
-            println!("i: {}, j: {}", i, j);
             let (prev_id, prev_rot) = order[i][j];
             let prev_right = patches[&prev_id].edges[RIGHTS[prev_rot]];
 
@@ -195,7 +194,6 @@ fn build_order(corners: &[usize], side_len: usize, patches:
                 .unwrap();
 
             order[i].push((next_id, next_rot));
-            println!("order: {:?}", order);
         }
         if i == (side_len - 1) { break }
         let (prev_id, prev_rot) = order[i][0];
@@ -239,6 +237,8 @@ fn build_image(patches: &HashMap<usize, Patch>, edgemap: &EdgeMap) {
     
 
     let order = build_order(&corners, side_len, patches, edgemap);
+    println!("Order map: \n{:?}", order);
+
    
 }
 
