@@ -1,11 +1,12 @@
 use std::fs;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt;
 
 fn main() {
     let mut patches = parse_patches("input");
     let edgemap = build_edgemap(&patches);
-    build_image(&patches, &edgemap);
+    build_image(&mut patches, &edgemap);
 }
 
 
@@ -70,7 +71,6 @@ impl fmt::Display for Line {
     }
 }
 
-
 // A patch of the resulting image. Patches are always square.
 // Patches can be rotated and flipped. The current orientation 
 // is encoded by a single u16 (rot) as follows:
@@ -81,7 +81,6 @@ impl fmt::Display for Line {
 // 4 - 7: like 0 - 3 but flipped along the x-axis
 // All rotations are clockwise
 struct Patch {
-    id: usize,
     data: [Line; SIZE],
     rot: u16, 
     edges: [Line; 8]
@@ -90,7 +89,6 @@ struct Patch {
 impl Patch {
     fn new() -> Patch {
         Patch {
-            id: 0,
             data: [Line::new(); SIZE],
             rot: 0,
             edges: [Line::new(); 8]
@@ -117,30 +115,57 @@ impl fmt::Display for Patch {
 
 type EdgeMap = HashMap<Line, Vec<usize>>;
 
-fn build_edgemap(patches: &[Patch]) -> EdgeMap {
+fn build_edgemap(patches: &HashMap<usize, Patch>) -> EdgeMap {
     let mut edge_map = HashMap::new();
-    for patch in patches {
+    for (id, patch) in patches {
         for edge in &patch.edges {
             let patch_ids = edge_map.entry(*edge).or_insert(Vec::new());
-            patch_ids.push(patch.id);
+            patch_ids.push(*id);
         }
     }
     edge_map
 }
 
-fn build_image(patches: &[Patch], edgemap: &EdgeMap) {
-    let side_len = (patches.len() as f64).sqrt() as usize;
-    let mut order: Vec<Vec<(usize, u8)>> = vec![vec![(0,0); side_len]; side_len];
-    println!("Side len: {}", side_len);
+fn build_order(side_len: usize, patches: &mut HashMap<usize, Patch>, 
+    edgemap: &EdgeMap) -> Vec<Vec<usize>> {
+    let mut order: Vec<Vec<usize>> = vec![vec![0; side_len]; side_len];
 
+    for (edge, ids) in edgemap.iter() {
+    }
+    order 
 }
 
-fn parse_patch(text: &str) -> Patch {
+fn find_corners(edgemap: &EdgeMap) -> Vec<usize> {
+    let mut edge_ids: Vec<usize> = Vec::new();
+    let mut single_counts: HashMap<usize, usize> = HashMap::new();
+    for (_, ids) in edgemap.iter() {
+        if ids.len() == 1 {
+            let mut id_count = single_counts.entry(ids[0]).or_insert(0);
+            *id_count += 1;
+            if single_counts[&ids[0]] == 4 {
+                edge_ids.push(ids[0]);
+                if edge_ids.len() == 4 { break }
+            }
+        }
+    }
+    edge_ids
+}
+
+
+fn build_image(patches: &mut HashMap<usize, Patch>, edgemap: &EdgeMap) {
+    let side_len = (patches.len() as f64).sqrt() as usize;
+    let corners = find_corners(edgemap);
+    let p1_answer = corners.iter().fold(1, |acc, &id| id as u64 * acc);
+    println!("P1 answer: {}", p1_answer);
+   
+}
+
+fn parse_patch(text: &str, patches: &mut HashMap<usize, Patch>) {
     let mut patch = Patch::new();
     let mut line_iter = text.split('\n');
 
     let header = line_iter.next().unwrap();
-    patch.id = header[5..9].parse::<usize>().unwrap();
+    let id = header[5..9].parse::<usize>().unwrap();
     
     for (i, line) in line_iter.enumerate() {
         for (j, chr) in line.chars().enumerate() {
@@ -161,15 +186,15 @@ fn parse_patch(text: &str) -> Patch {
     for i in 4..8 {
         patch.edges[i] = patch.edges[i - 4].flip();
     }
-    patch
+    patches.insert(id, patch);
 }
 
-fn parse_patches(filename: &str) -> Vec<Patch> {
+fn parse_patches(filename: &str) -> HashMap<usize, Patch> {
     let buffer = fs::read_to_string(filename).unwrap();
-    let mut patches: Vec<Patch> = Vec::new();
+    let mut patches: HashMap<usize, Patch> = HashMap::new();
     
     for patch_txt in buffer.trim().split("\n\n") {
-        patches.push(parse_patch(patch_txt));
+        parse_patch(patch_txt, &mut patches);
     }
     patches
 }
