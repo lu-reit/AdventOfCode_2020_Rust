@@ -5,6 +5,15 @@ use std::fmt;
 
 fn main() {
     let mut patches = parse_patches("test");
+//    for (id, patch) in patches.iter().take(2) {
+//        println!("ID: {}", id);
+//        for edge in patch.edges.iter() {
+//            println!("{}", edge);
+//        }
+//        println!();
+//    }
+
+
     let edgemap = build_edgemap(&patches);
     build_image(&mut patches, &edgemap);
 }
@@ -88,7 +97,6 @@ impl fmt::Display for Line {
 // All rotations are clockwise
 struct Patch {
     data: [Line; SIZE],
-    rot: u16, 
     edges: [Line; 8]
 }
 
@@ -96,7 +104,6 @@ impl Patch {
     fn new() -> Patch {
         Patch {
             data: [Line::new(); SIZE],
-            rot: 0,
             edges: [Line::new(); 8]
         }
     }
@@ -108,6 +115,20 @@ impl Patch {
         }
         col
     }
+
+    fn get_data(&self, rot: usize) -> [Line; SIZE] {
+        let mut ret_data = [Line::new(); SIZE];
+        match rot {
+            0 => {
+                for i in 1..(SIZE - 1) {
+                    ret_data[i].bin = (0x7FFF & self.data[i].bin) >> 1;
+                }
+            }
+            _ => panic!("Unknown rotation received")
+        }
+        ret_data
+    }
+
 }
 
 impl fmt::Display for Patch {
@@ -118,6 +139,8 @@ impl fmt::Display for Patch {
         Ok(())
     }
 }
+
+
 
 type EdgeMap = HashMap<Line, Vec<usize>>;
 
@@ -156,14 +179,18 @@ fn find_corners(edgemap: &EdgeMap) -> Vec<usize> {
     edge_ids
 }
 
+fn next_rot_idx(rot: usize, offset: i32) -> usize {
+    let wrap = ((rot as i32 - offset) % 4).abs() as usize;
+    if rot < 4 { wrap } else { wrap + 4 }
+}
+
 fn first_rotation(first: usize, patches: &HashMap<usize, Patch>,
     edge_map: &EdgeMap) -> usize {
     let first_edges = patches[&first].edges;
     // Find left edge 
     for (rot, edge) in first_edges.iter().enumerate() {
         if edge_map[edge].len() == 1 {
-            let top_idx = BOTS[rot];
-            let top = first_edges[top_idx];
+            let top = first_edges[next_rot_idx(rot, 1)];
             if edge_map[&top].len() == 1 {
                 return rot;
             }
@@ -176,14 +203,15 @@ fn build_order(corners: &[usize], side_len: usize, patches:
     &HashMap<usize, Patch>, edgemap: &EdgeMap) -> Vec<Vec<(usize, usize)>> {
 
     let mut order: Vec<Vec<(usize, usize)>> = Vec::new();
-    let first_rot = first_rotation(corners[0], patches, edgemap);
-    order.push(vec![(corners[0], first_rot)]);
+    let first_rot = first_rotation(1951, patches, edgemap);
+    order.push(vec![(1951, first_rot)]);
 
     let mut i = 0;
     loop { 
         for j in 0..(side_len - 1) {
             let (prev_id, prev_rot) = order[i][j];
-            let prev_right = patches[&prev_id].edges[RIGHTS[prev_rot]];
+            let prev_right = patches[&prev_id].edges[next_rot_idx(prev_rot, 2)];
+            println!("{}", prev_right);
 
             let border_ids = &edgemap[&prev_right];
             let next_id = if border_ids[0] == prev_id { border_ids[1] } 
@@ -193,11 +221,12 @@ fn build_order(corners: &[usize], side_len: usize, patches:
                 .position(|&line| line == prev_right)
                 .unwrap();
 
-            order[i].push((next_id, next_rot));
+            order[i].push((next_id, (next_rot + 4) % 8));
+            println!("{:?}", order);
         }
         if i == (side_len - 1) { break }
         let (prev_id, prev_rot) = order[i][0];
-        let prev_bot = patches[&prev_id].edges[TOPS[prev_rot]];
+        let prev_bot = patches[&prev_id].edges[next_rot_idx(prev_rot, 3)];
 
         let border_ids = &edgemap[&prev_bot];
         let next_id = if border_ids[0] == prev_id { border_ids[1] } 
@@ -207,9 +236,7 @@ fn build_order(corners: &[usize], side_len: usize, patches:
             .edges.iter()
             .position(|&line| line == prev_bot)
             .unwrap();
-        let next_rot = BOTS.iter()
-            .position(|&pos| pos == top_pos)
-            .unwrap();
+        let next_rot = (next_rot_idx(top_pos, -1) + 4) % 8;
 
         order.push(vec![(next_id, next_rot)]);
         i += 1;
@@ -224,22 +251,22 @@ fn build_image(patches: &HashMap<usize, Patch>, edgemap: &EdgeMap) {
     println!("P1 answer: {}", p1_answer);
     println!("All corners: {:?}", corners);
 
-    let first = corners[0];
-    let first_rotation = first_rotation(corners[0], patches, edgemap);
+    let first = 1951;
+    let rot = first_rotation(first, patches, edgemap);
+    let flipped = if rot < 4 { 0 } else { 4 };
 
-    println!("Rotation of patch at top_left corner: {}", first_rotation);
+    println!("Rotation of patch at top_left corner: {}", rot);
     println!("Left-edge of patch of that patch: {}", 
-        patches[&first].edges[first_rotation]);
-    println!("LEFT: {:?}", edgemap[&patches[&first].edges[LEFTS[first_rotation]]]);
-    println!("TOP: {:?}", edgemap[&patches[&first].edges[TOPS[first_rotation]]]);
-    println!("RIGHT: {:?}", edgemap[&patches[&first].edges[RIGHTS[first_rotation]]]);
-    println!("BOT: {:?}", edgemap[&patches[&first].edges[BOTS[first_rotation]]]);
+        patches[&first].edges[rot]);
+    println!("LEFT: {:?}", edgemap[&patches[&first].edges[rot]]);
+    println!("TOP: {:?}", edgemap[&patches[&first].edges[next_rot_idx(rot, 1)]]);
+    println!("RIGHT: {:?}", edgemap[&patches[&first].edges[next_rot_idx(rot, 2)]]);
+    println!("BOT: {:?}", edgemap[&patches[&first].edges[next_rot_idx(rot, 3)]]);
     
-
     let order = build_order(&corners, side_len, patches, edgemap);
     println!("Order map: \n{:?}", order);
 
-   
+
 }
 
 fn parse_patch(text: &str, patches: &mut HashMap<usize, Patch>) {
@@ -261,10 +288,10 @@ fn parse_patch(text: &str, patches: &mut HashMap<usize, Patch>) {
         }
     }
     // Set the edges (left,top,right,bottom) and their flipped versions
-    patch.edges[0] = patch.get_col(0);
+    patch.edges[0] = patch.get_col(0).flip();
     patch.edges[1] = patch.data[0];
     patch.edges[2] = patch.get_col(SIZE - 1);
-    patch.edges[3] = patch.data[SIZE - 1];
+    patch.edges[3] = patch.data[SIZE - 1].flip();
     for i in 4..8 {
         patch.edges[i] = patch.edges[i - 4].flip();
     }
