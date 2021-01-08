@@ -1,21 +1,22 @@
 use std::fs;
 use std::collections::HashMap;
 use std::collections::HashSet;
-
+use std::time::Instant;
 
 fn main() {
+    // Doesnt make sense here to time the parts seperatly,
+    // so i just time everything
+    let timer = Instant::now();
     let mut foods = read_allergens("input");
     solve_foods(&mut foods);
     let p1_result = part1(&foods);
     let p2_result = part2(&foods);
+    let elapsed = timer.elapsed(); 
     println!("Result of part1: {}", p1_result);
     println!("Result of part2: {}", p2_result);
+    println!("Total time: {:?}", elapsed);
 }
  
-fn b_to_s(bstring: &[u8]) -> String {
-    String::from_utf8_lossy(bstring).to_string()
-}
-
 struct Foods {
     total: usize,
     ingreds: HashMap<String, usize>,
@@ -32,8 +33,6 @@ impl Foods {
     }
 }
 
-
-
 fn part2(foods: &Foods) -> String {
     let mut pairs: Vec<(&str, &str)> = Vec::new();
     for (allergen, ingred_set) in foods.fmap.iter() {
@@ -44,12 +43,9 @@ fn part2(foods: &Foods) -> String {
     for (_, ingred) in pairs.iter().skip(1) {
         buffer = format!("{},{}", buffer, ingred);
     }
-        
     buffer
 }
     
-
-
 fn part1(foods: &Foods) -> usize {
     let mut known_total = 0;
     for (_, ingred_set) in foods.fmap.iter() {
@@ -64,7 +60,7 @@ fn solve_foods(foods: &mut Foods) {
 
     loop { 
         let mut all_found = true;
-        for (allergen, ingred_set) in foods.fmap.iter_mut() {
+        for (_, ingred_set) in foods.fmap.iter_mut() {
             if ingred_set.len() == 1 {
                 let single = ingred_set.iter().next().unwrap();
                 known.insert(single.clone());
@@ -81,14 +77,12 @@ fn solve_foods(foods: &mut Foods) {
 }
 
 fn read_allergens(filename: &str) -> Foods {
-    let mut buffer = fs::read_to_string(filename).unwrap();
-    println!("{}", &buffer);
-    println!("{}", buffer.len());
+    let buffer = fs::read_to_string(filename).unwrap();
     let mut foods = Foods::new();
 
     for line in buffer.trim().split('\n') {
         let mut parts = line.split(" (");
-        let mut ingred_txt = parts.next().unwrap();
+        let ingred_txt = parts.next().unwrap();
 
         let mut allergen_txt = parts.next().unwrap();
         allergen_txt = &allergen_txt[9..(allergen_txt.len() - 1)];
@@ -117,17 +111,5 @@ fn read_allergens(filename: &str) -> Foods {
             }
         }
     }
-    for (ingred, count) in foods.ingreds.iter() {
-        println!("Ingredient: {};\t count: {}", ingred, count);
-    }
-    for (all, intersec) in foods.fmap.iter() {
-        print!("Allergen {}: ", all);
-        for ingred in intersec {
-            print!("{}, ", ingred);
-        }
-        println!();
-    }
-    println!("Total: {}", foods.total);
     foods
 }
-
