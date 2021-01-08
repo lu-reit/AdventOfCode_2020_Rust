@@ -7,7 +7,9 @@ use regex::Regex;
 
 
 fn main() {
-    read_allergens("test");
+    let mut foods = read_allergens("input");
+    let p1_result = part1(&foods);
+    println!("Result of part1: {}", p1_result);
 }
  
 type BString = Vec<u8>;
@@ -18,21 +20,38 @@ fn b_to_s(bstring: &[u8]) -> String {
 }
 
 struct Foods {
+    total: usize,
     ingreds: HashMap<BString, usize>,
-    fmap: FoodMap,
+    fmap: HashMap<BString, HashSet<BString>>,
 }
 
 impl Foods {
     fn new() -> Foods {
         Foods { 
+            total: 0,
             ingreds: HashMap::new(),
             fmap: HashMap::new(),
         }
     }
 }
 
-fn read_allergens(filename: &str) {
-    let mut buffer = read_ascii_trim(filename);
+fn part1(foods: &Foods) -> usize {
+    let mut known: HashSet<BString> = HashSet::new();
+    let mut known_total = 0;
+
+    for (_, ingred_set) in foods.fmap.iter() {
+        for ingred in ingred_set.iter() {
+            if !known.contains(ingred) {
+                known.insert(ingred.clone());
+                known_total += foods.ingreds[ingred];
+            }
+        }
+    }
+    foods.total - known_total
+}
+
+fn read_allergens(filename: &str) -> Foods {
+    let buffer = read_ascii_trim(filename);
     println!("{}", b_to_s(&buffer));
     println!("{}", buffer.len());
     let mut foods = Foods::new();
@@ -48,31 +67,40 @@ fn read_allergens(filename: &str) {
         let mut cur_ingreds: HashSet<BString> = HashSet::new();
         for ingred in ingred_txt.split(|&c| c.is_ascii_whitespace()) {
             let i_vec = ingred.to_vec();
-            let mut entry = foods.ingreds.entry(i_vec).or_insert(0);
+            let entry = foods.ingreds.entry(i_vec).or_insert(0);
             *entry += 1;
             cur_ingreds.insert(ingred.to_vec());
         }
+        foods.total += cur_ingreds.len();
 
         for allergen in allergen_txt.split(|&c| c == b',') {
             let a_vec = if allergen[0] == b' ' { allergen[1..].to_vec() }
                 else { allergen.to_vec() };
-            let mut entry = foods.fmap.entry(a_vec).or_insert(Vec::new());
-            entry.push(cur_ingreds.clone());
+            match foods.fmap.get_mut(&a_vec) {
+                Some(set) => {
+                    let intersection = set.intersection(&cur_ingreds)
+                        .cloned()
+                        .collect();
+                    *set = intersection;
+                }
+                None => { 
+                    foods.fmap.insert(a_vec, cur_ingreds.clone());
+                }
+            }
         }
     }
     for (ingred, count) in foods.ingreds.iter() {
         println!("Ingredient: {};\t count: {}", b_to_s(&ingred), count);
     }
-    for (all, v) in foods.fmap.iter() {
-        println!("Allergen: {}", b_to_s(&all));
-        for (i, food) in v.iter().enumerate() {
-            print!("{}: ", i);
-            for x in food.iter() {
-                print!("{} ", b_to_s(&x));
-            }
-            println!();
+    for (all, intersec) in foods.fmap.iter() {
+        print!("Allergen {}: ", b_to_s(&all));
+        for ingred in intersec {
+            print!("{}, ", b_to_s(&ingred));
         }
+        println!();
     }
+    println!("Total: {}", foods.total);
+    foods
 }
 
 fn read_ascii_trim(filename: &str) -> BString {
