@@ -53,14 +53,25 @@ fn read_allergens(filename: &str) {
             cur_ingreds.insert(ingred.to_vec());
         }
 
-        for allergen in allergen_txt.split(|&c| c.is_ascii_whitespace()) {
-            let a_vec = allergen.to_vec();
+        for allergen in allergen_txt.split(|&c| c == b',') {
+            let a_vec = if allergen[0] == b' ' { allergen[1..].to_vec() }
+                else { allergen.to_vec() };
             let mut entry = foods.fmap.entry(a_vec).or_insert(Vec::new());
             entry.push(cur_ingreds.clone());
         }
     }
     for (ingred, count) in foods.ingreds.iter() {
         println!("Ingredient: {};\t count: {}", b_to_s(&ingred), count);
+    }
+    for (all, v) in foods.fmap.iter() {
+        println!("Allergen: {}", b_to_s(&all));
+        for (i, food) in v.iter().enumerate() {
+            print!("{}: ", i);
+            for x in food.iter() {
+                print!("{} ", b_to_s(&x));
+            }
+            println!();
+        }
     }
 }
 
