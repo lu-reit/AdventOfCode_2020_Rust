@@ -42,7 +42,7 @@ fn parse_directions(filename: &str) -> HashMap<Cell, bool> {
                 Some(chr) if chr == 'n' => {
                     cell.y -= 1;
                     let next = chars_iter.next().unwrap();
-                    if next == 'w' { cell.x -= 1; } 
+                    if next == 'e' { cell.x += 1; } 
                 }
                 Some(chr) if chr == 's' => {
                     cell.y += 1;
