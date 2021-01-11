@@ -1,10 +1,16 @@
 use std::fs;
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 fn main() {
-    let cell_map = parse_directions("input");
-    let p1_result = part1(&cell_map);
+    let cell_set = parse_directions("input");
+    let p1_result = cell_set.len();
+
     println!("Result part1: {}", p1_result);
+    for cell in cell_set.iter() {
+        println!("Cells : {:?}", cell)
+    }
+    run_n_times(100, cell_set);
+    
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -40,18 +46,91 @@ impl Cell {
     }
 }
 
-
-fn part1(cell_map: &HashMap<Cell, bool>) -> usize {
-    let mut blacks = 0;
-    cell_map.iter()
-        .fold(0, 
-            |acc, (_, &is_black)| if is_black { acc + 1 } else { acc }
-        )
+fn run_n_times(times: usize, mut cell_set: HashSet<Cell>) -> usize { 
+    for i in 0..times {
+        cell_set = run_once(&cell_set);
+        println!("Run: {}; n_blacks: {}", i + 1, cell_set.len());
+    }
+    cell_set.len()
 }
 
-fn parse_directions(filename: &str) -> HashMap<Cell, bool> {
+
+fn run_once(cell_set: &HashSet<Cell>) -> HashSet<Cell> {
+    let all_adjacent = get_all_adjacent(&cell_set);
+    let flipped_blacks = handle_blacks(&all_adjacent, &cell_set);
+    let flipped_whites = handle_whites(&all_adjacent, &cell_set);
+    flipped_blacks.union(&flipped_whites).copied().collect()
+}
+
+fn get_all_adjacent(cell_set: &HashSet<Cell>) -> Vec<(Cell, Vec<Cell>)> {
+    let mut adjacent: Vec<(Cell, Vec<Cell>)> = Vec::new();
+
+    for cell in cell_set.iter() {
+        adjacent.push((*cell, cell.get_adjacent()));
+    }
+    adjacent
+}
+
+fn handle_blacks(adjacents: &Vec<(Cell, Vec<Cell>)>, cell_set: &HashSet<Cell>)
+    -> HashSet<Cell> {
+    let mut new_blacks: HashSet<Cell> = HashSet::new();
+
+    for (cell, adjacent_cells) in adjacents {
+        let mut adjacent_count = 0;
+
+        for adjacent_cell in adjacent_cells {
+            if cell_set.contains(adjacent_cell) {
+                adjacent_count += 1;
+            }
+        }
+        if adjacent_count == 1 || adjacent_count == 2 {
+            new_blacks.insert(*cell);
+        }
+    }
+    new_blacks
+}
+
+fn handle_whites(adjacents: &Vec<(Cell, Vec<Cell>)>, cell_set: &HashSet<Cell>)
+    -> HashSet<Cell> {
+    let mut seen: HashSet<Cell> = HashSet::new();
+    let mut new_blacks: HashSet<Cell> = HashSet::new();
+
+    for (_, adjacent_cells) in adjacents {
+        for adjacent_cell in adjacent_cells {
+            if seen.contains(adjacent_cell) {
+                continue
+            } else {
+                seen.insert(*adjacent_cell);
+            }
+            if cell_set.contains(adjacent_cell) {
+                continue
+            }
+
+            let mut adjacent_count = 0;
+            let white_adjacents = adjacent_cell.get_adjacent(); 
+            for white_adjacent in white_adjacents.iter() {
+                if cell_set.contains(white_adjacent) {
+                    adjacent_count += 1
+                }
+            }
+            
+            if adjacent_count == 2 {
+                new_blacks.insert(*adjacent_cell);
+            }
+        }
+    }
+    new_blacks
+}
+
+
+
+
+
+ 
+
+fn parse_directions(filename: &str) -> HashSet<Cell> {
     let mut buffer = fs::read_to_string(filename).unwrap();
-    let mut cell_map = HashMap::new();
+    let mut cell_set = HashSet::new();
     
     for dir_list in buffer.trim().split('\n') {
         let mut cell = Cell::new(0, 0);
@@ -75,12 +154,11 @@ fn parse_directions(filename: &str) -> HashMap<Cell, bool> {
                 None => { break }
             }
         }
-        println!("Cell: {:?}", cell);
-        let entry = cell_map.entry(cell).or_insert(false);
-        println!("Entry before: {}", entry);
-        *entry = !(*entry);
-        println!("Entry after: {}", entry);
-         
+        if cell_set.contains(&cell) {
+            cell_set.remove(&cell); 
+        } else {
+            cell_set.insert(cell);
+        }
     }
-    cell_map
+    cell_set
 }
