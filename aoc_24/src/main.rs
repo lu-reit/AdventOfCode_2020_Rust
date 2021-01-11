@@ -1,15 +1,20 @@
 use std::fs;
 use std::collections::HashSet;
+use std::time::Instant;
 
 fn main() {
+    let p1_timer = Instant::now();
     let cell_set = parse_directions("input");
     let p1_result = cell_set.len();
-
+    let p1_time = p1_timer.elapsed();
     println!("Result part1: {}", p1_result);
-    for cell in cell_set.iter() {
-        println!("Cells : {:?}", cell)
-    }
-    run_n_times(100, cell_set);
+    println!("Time part1: {:?}", p1_time);
+
+    let p2_timer = Instant::now();
+    let p2_result = run_n_times(100, cell_set);
+    let p2_time = p2_timer.elapsed();
+    println!("Result part2: {}", p2_result);
+    println!("Time part2: {:?}", p2_time);
     
 }
 
@@ -49,7 +54,6 @@ impl Cell {
 fn run_n_times(times: usize, mut cell_set: HashSet<Cell>) -> usize { 
     for i in 0..times {
         cell_set = run_once(&cell_set);
-        println!("Run: {}; n_blacks: {}", i + 1, cell_set.len());
     }
     cell_set.len()
 }
@@ -121,12 +125,6 @@ fn handle_whites(adjacents: &Vec<(Cell, Vec<Cell>)>, cell_set: &HashSet<Cell>)
     }
     new_blacks
 }
-
-
-
-
-
- 
 
 fn parse_directions(filename: &str) -> HashSet<Cell> {
     let mut buffer = fs::read_to_string(filename).unwrap();
