@@ -17,7 +17,29 @@ impl Cell {
     fn new(x: i32, y: i32) -> Cell {
         Cell { x, y }
     }
+
+    // Get a list of adjacent cells. Uses axial
+    // coordinate system.
+    fn get_adjacent(&self) -> Vec<Cell> {
+        let mut adjacent: Vec<Cell> = Vec::new();
+        
+        // East
+        adjacent.push(Cell::new(self.x + 1, self.y));
+        // West 
+        adjacent.push(Cell::new(self.x - 1, self.y));
+        // North-west 
+        adjacent.push(Cell::new(self.x, self.y - 1));
+        // North-east
+        adjacent.push(Cell::new(self.x + 1, self.y - 1));
+        // South-west
+        adjacent.push(Cell::new(self.x - 1, self.y + 1));
+        // South-east 
+        adjacent.push(Cell::new(self.x, self.y + 1));
+
+        adjacent
+    }
 }
+
 
 fn part1(cell_map: &HashMap<Cell, bool>) -> usize {
     let mut blacks = 0;
